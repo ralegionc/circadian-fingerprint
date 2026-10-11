@@ -1,0 +1,344 @@
+<script>
+(function () {
+  "use strict";
+
+  var R = window.CIRCADIAN_RENDER;
+  var D = window.CIRCADIAN || {};
+  if (!R) return;
+
+  // Series colours come from the verified tokens, never from literals.
+  var C1 = function () { return R.cssVar("--series-1"); };
+  var C2 = function () { return R.cssVar("--series-2"); };
+  var C3 = function () { return R.cssVar("--series-3"); };
+  var draws = [];
+  function draw(fn) { draws.push(fn); fn(); }
+
+  /* ---------- Wikipedia tiles ---------- */
+
+  var tileMode = "utc";
+  // Japanese opens the detail panel: single timezone, no daylight saving, and
+  // the clearest daily shape in the set.
+  var picked = "ja";
+  var tilesHost = R.byId("lang-tiles");
+  var detailHost = R.byId("lang-detail");
+
+  function paintEditions() {
+    if (tilesHost) R.renderTiles(tilesHost, tileMode, picked);
+    if (detailHost) R.renderEditionDetail(detailHost, picked, tileMode);
+  }
+
+  if (tilesHost && D.wiki) {
+    if (!D.wiki.languages[picked]) picked = Object.keys(D.wiki.languages)[0];
+    draw(paintEditions);
+    R.segment(R.byId("tiles-toggle"), function (v) {
+      tileMode = v;
+      paintEditions();
+    });
+    tilesHost.addEventListener("click", function (e) {
+      var b = e.target.closest(".tile");
+      if (!b || !b.dataset.code) return;
+      picked = b.dataset.code;
+      paintEditions();
+      if (detailHost) {
+        detailHost.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    });
+  }
+
+  var tableHost = R.byId("lang-table");
+  if (tableHost && D.wiki) {
+    draw(function () {
+      var L = D.wiki.languages;
+      var rows = Object.keys(L).sort(function (a, b) {
+        return L[b].stats.amplitude - L[a].stats.amplitude;
+      }).map(function (c) {
+        var r = L[c], bd = r.stats.by_day;
+        var hi = bd.indexOf(Math.max.apply(null, bd));
+        var lo = bd.indexOf(Math.min.apply(null, bd));
+        return [
+          r.label + (r.spread ? " *" : ""),
+          r.tz.replace(/_/g, " "),
+          R.fmtHour(r.stats.peak_hour),
+          R.fmtHour(r.stats.trough_hour),
+          r.stats.amplitude.toFixed(2) + "x",
+          R.DAYS[hi],
+          R.DAYS[lo],
+          (bd[hi] / bd[lo]).toFixed(2) + "x",
+          (r.total_views / 1e6).toFixed(0) + "M"
+        ];
+      });
+      R.renderTable(tableHost,
+        ["Edition", "Timezone anchor", "Busiest hour", "Quietest hour",
+         "Hour range", "Busiest day", "Quietest day", "Day range",
+         "Pageviews"], rows);
+      var note = document.createElement("p");
+      note.className = "note";
+      note.style.marginTop = ".6rem";
+      note.textContent = "* readers spread across many timezones, so the local"
+        + " clock is an approximation for these five.";
+      tableHost.appendChild(note);
+    });
+  }
+
+  /* ---------- phase strip ---------- */
+
+  var phaseHost = R.byId("phase-strip");
+  if (phaseHost && D.wiki) draw(function () { R.renderPhase(phaseHost); });
+
+  /* ---------- amplitude bars ---------- */
+
+  function langRows(valueFn, sortDesc) {
+    var L = D.wiki.languages;
+    return Object.keys(L).map(function (c) {
+      var r = L[c];
+      return {
+        name: r.label,
+        value: valueFn(r),
+        color: r.spread ? C2() : C1(),
+        tip: "<b>" + r.label + "</b><br>" + r.tz.replace("_", " ")
+           + "<br>peak " + R.fmtHour(r.stats.peak_hour)
+           + ", trough " + R.fmtHour(r.stats.trough_hour)
+           + "<br>" + (r.total_views / 1e6).toFixed(0) + "M pageviews"
+      };
+    }).sort(function (a, b) { return sortDesc ? b.value - a.value : a.value - b.value; });
+  }
+
+  var ampHost = R.byId("amp-bars");
+  if (ampHost && D.wiki) {
+    draw(function () {
+      R.renderBars(ampHost, langRows(function (r) { return r.stats.amplitude; }, true),
+        { fmt: function (v) { return v.toFixed(1) + "x"; } });
+    });
+  }
+
+  var wkHost = R.byId("wiki-weekday");
+  if (wkHost && D.wiki) {
+    draw(function () {
+      R.renderBars(wkHost, langRows(function (r) {
+        var bd = r.stats.by_day;
+        return Math.max.apply(null, bd) / Math.min.apply(null, bd);
+      }, true), { fmt: function (v) { return v.toFixed(2) + "x"; }, max: 11.7 });
+    });
+  }
+
+  /* ---------- GitHub ---------- */
+
+  var GH_GROUPS = ["ALL", "Push", "Pull requests", "Review",
+                   "Issues & comments", "Stars"];
+
+  var ghHost = R.byId("gh-tiles");
+  if (ghHost && D.github) {
+    draw(function () {
+      ghHost.innerHTML = "";
+      GH_GROUPS.forEach(function (g) {
+        var rec = D.github.actors.human[g];
+        if (!rec) return;
+        var tile = document.createElement("div");
+        tile.className = "tile";
+        var head = document.createElement("div");
+        head.className = "tile-head";
+        var n = document.createElement("div");
+        n.className = "tile-name";
+        n.textContent = g === "ALL" ? "All activity" : g;
+        var m = document.createElement("div");
+        m.className = "tile-meta";
+        m.textContent = "wknd " + rec.stats.weekend_ratio.toFixed(2) + "x";
+        head.appendChild(n); head.appendChild(m);
+        tile.appendChild(head);
+        var body = document.createElement("div");
+        R.buildActogram(body, rec.norm, { unit: "this group's average hour" });
+        tile.appendChild(body);
+        ghHost.appendChild(tile);
+      });
+    });
+  }
+
+  // The thesis chart: one single-timezone edition against two worldwide
+  // audiences, all on the UTC clock.
+  var crossHost = R.byId("cross-hours");
+  if (crossHost && D.wiki && D.github) {
+    draw(function () {
+      function utcHourly(code) {
+        var m = D.wiki.languages[code];
+        if (!m) return null;
+        var out = [];
+        for (var h = 0; h < 24; h++) {
+          var s = 0;
+          for (var d = 0; d < 7; d++) s += m.utc[d][h];
+          out.push(s / 7);
+        }
+        return out;
+      }
+      var de = utcHourly("de"), en = utcHourly("en");
+      if (!de || !en) return;
+      R.renderLines(crossHost, [
+        { name: "German", values: de, color: C1() },
+        { name: "English", values: en, color: C2() },
+        { name: "GitHub", values: D.github.actors.human.ALL.stats.by_hour,
+          color: C3() }
+      ], { label: "Hourly activity on the UTC clock: German Wikipedia, English "
+                + "Wikipedia and GitHub", xlabel: "Hour of day (UTC)" });
+    });
+  }
+
+  var ghRevHost = R.byId("gh-review-large");
+  if (ghRevHost && D.github && D.github.actors.human.Review) {
+    draw(function () {
+      R.buildLargeActogram(ghRevHost, D.github.actors.human.Review.norm,
+        { unit: "the average hour for code review" });
+    });
+  }
+
+  var ghBotHost = R.byId("gh-bot-lines");
+  if (ghBotHost && D.github) {
+    draw(function () {
+      R.renderLines(ghBotHost, [
+        { name: "People", values: D.github.actors.human.ALL.stats.by_hour, color: C1() },
+        { name: "Bot accounts", values: D.github.actors.bot.ALL.stats.by_hour, color: C2() },
+        { name: "Bot events", values: D.github.events.bot.ALL.stats.by_hour,
+          color: C3() }
+      ], { label: "GitHub activity per UTC hour: people, bot accounts, bot events",
+           xlabel: "Hour of day (UTC)" });
+    });
+  }
+
+  var ghWkHost = R.byId("gh-weekday");
+  if (ghWkHost && D.github) {
+    draw(function () {
+      var rows = GH_GROUPS.filter(function (g) { return g !== "ALL"; })
+        .map(function (g) {
+          var rec = D.github.actors.human[g];
+          return rec ? {
+            name: g, value: rec.stats.weekend_ratio,
+            color: rec.stats.weekend_ratio < 0.8 ? C2() : C1(),
+            tip: "<b>" + g + "</b><br>weekend activity is "
+               + Math.round(rec.stats.weekend_ratio * 100) + "% of the weekday level"
+          } : null;
+        }).filter(Boolean)
+        .sort(function (a, b) { return a.value - b.value; });
+      R.renderBars(ghWkHost, rows,
+        { fmt: function (v) { return v.toFixed(2) + "x"; }, max: 1.1 });
+    });
+  }
+
+  /* ---------- topics ---------- */
+
+  // English glosses for the Japanese titles on display, so the lists are
+  // readable without Japanese. The Japanese title stays in the hover text.
+  // English glosses for the Japanese titles on display, added by hand so the
+  // lists are readable without Japanese. The Japanese title stays in the hover
+  // text. Sumo wrestlers are listed under the article title, which is the
+  // wrestler's birth name, with the fighting name in the gloss.
+  var JA_GLOSS = {
+    "エスワン": "S1 (adult video studio)",
+    "プレステージ_(アダルトビデオ)": "Prestige (adult video studio)",
+    "FANZA": "FANZA (adult content platform)",
+    "XHamster": "xHamster",
+    "抜きゲーみたいな島に住んでる貧乳はどうすりゃいいですか?": "Nukitashi (late-night anime)",
+    "異世界黙示録マイノグーラ〜破滅の文明で始める世界征服〜": "Mynoghra (late-night anime)",
+    "フリービット": "Freebit (internet provider)",
+    "天地創造_(ゲーム)": "Terranigma (1995 video game)",
+    "オニカマス": "Great barracuda",
+    "福島蓮": "Ren Fukushima, Otsuyoshi (sumo)",
+    "エドガルド・エンリケス": "Edgardo Enriquez (footballer)",
+    "国際電話番号の一覧": "List of international dialling codes",
+    "英乃海拓也": "Hidenoumi (sumo)",
+    "朝紅龍琢馬": "Asakoryu (sumo)",
+    "安部敏樹": "Toshiki Abe (social entrepreneur)",
+    "若元春港": "Wakamotoharu (sumo)",
+    "藤ノ川成剛": "Fujinokawa (sumo)",
+    "髙安晃": "Takayasu (sumo)",
+    "王鵬幸之介": "Oho (sumo)",
+    "伯桜鵬哲也": "Hakuoho (sumo)",
+    "琴櫻将傑": "Kotozakura (sumo)"
+  };
+
+  function rankPanel(hostId, titles, project, mode) {
+    var host = R.byId(hostId);
+    if (!host || !D.topics || !D.topics[project]) return;
+    var T = D.topics[project];
+    draw(function () {
+      host.innerHTML = "";
+      titles.forEach(function (t) {
+        var a = T.detail[t];
+        if (!a) return;
+        var item = document.createElement("div");
+        item.className = "rank-item";
+        var lbl = document.createElement("div");
+        lbl.className = "rank-label";
+        var shown = JA_GLOSS[t] || R.prettyTitle(t);
+        lbl.textContent = shown;
+        lbl.title = JA_GLOSS[t] ? shown + "  (" + R.prettyTitle(t) + ")" : shown;
+        var sp = document.createElement("div");
+        sp.appendChild(R.sparkline(mode === "day" ? a.idx_day : a.idx_hour, 1));
+        var v = document.createElement("div");
+        v.className = "rank-val";
+        var val = mode === "day" ? a.weekendness : a.nocturnality;
+        v.textContent = val.toFixed(2) + "x";
+        item.appendChild(lbl); item.appendChild(sp); item.appendChild(v);
+        R.attachTip(item, function () {
+          return "<b>" + shown + "</b><br>"
+            + a.views.toLocaleString() + " views<br>"
+            + (mode === "day"
+                ? "weekend " + a.weekendness.toFixed(2) + "x weekday"
+                : "peak " + R.fmtHour(a.peak_hour) + " " + T.tz_label);
+        });
+        host.appendChild(item);
+      });
+    });
+  }
+
+  if (D.topics) {
+    var en = D.topics.en, ja = D.topics.ja;
+    if (en) {
+      rankPanel("rank-en-quiet", en.rank.nocturnal.slice(0, 12), "en", "hour");
+      rankPanel("rank-en-busy", en.rank.diurnal.slice(0, 12), "en", "hour");
+      rankPanel("rank-en-weekend", en.rank.weekend.slice(0, 12), "en", "day");
+      rankPanel("rank-en-weekday", en.rank.weekday.slice(0, 12), "en", "day");
+      var sc = R.byId("topic-scatter");
+      if (sc) {
+        // The caption's counts come from the render, not from hand-typed
+        // numbers, so they cannot drift out of step with the data.
+        var paintScatter = function () {
+          R.renderScatter(sc, en.scatter);
+          var tot = R.byId("scatter-total");
+          if (tot) tot.textContent = en.scatter.length.toLocaleString();
+          var cl = R.byId("scatter-clamped");
+          if (cl) {
+            var n = sc._clamped || 0;
+            cl.textContent = n === 0 ? ""
+              : n === 1
+                ? "One article falls outside the axes and is drawn hollow on the boundary rather than dropped."
+                : n + " articles fall outside the axes and are drawn hollow on the boundary rather than dropped.";
+          }
+        };
+        draw(paintScatter);
+        var t0;
+        window.addEventListener("resize", function () {
+          clearTimeout(t0);
+          t0 = setTimeout(paintScatter, 180);
+        });
+      }
+    }
+    if (ja) {
+      // The 2am-7am ranking is half individual performers. The list on the page
+      // shows the works, studios and platforms from that same top 30; the
+      // composition of the rest is given in the prose rather than as a roster
+      // of names.
+      var jaNight = ja.rank.nocturnal.slice(0, 30).filter(function (t) {
+        return JA_GLOSS[t];
+      });
+      rankPanel("rank-ja-night", jaNight, "ja", "hour");
+      rankPanel("rank-ja-day", ja.rank.diurnal.slice(0, 12), "ja", "hour");
+    }
+  }
+
+  /* ---------- redraw on theme change ---------- */
+
+  function redraw() { draws.forEach(function (f) { f(); }); }
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  if (mq.addEventListener) mq.addEventListener("change", redraw);
+  new MutationObserver(redraw).observe(document.documentElement,
+    { attributes: true, attributeFilter: ["data-theme"] });
+})();
+</script>

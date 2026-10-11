@@ -1,0 +1,594 @@
+<script>
+(function () {
+  "use strict";
+
+  var D = window.CIRCADIAN || {};
+  var DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  var redraws = [];
+
+  /* ---------- colour ---------- */
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  function hexToRgb(h) {
+    h = h.replace("#", "");
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  function stops(names) { return names.map(function (n) { return hexToRgb(cssVar(n)); }); }
+
+  function interp(list, t) {
+    t = Math.max(0, Math.min(1, t));
+    var x = t * (list.length - 1);
+    var i = Math.min(Math.floor(x), list.length - 2);
+    var f = x - i, a = list[i], b = list[i + 1];
+    return "rgb(" + Math.round(a[0] + (b[0] - a[0]) * f) + ","
+                  + Math.round(a[1] + (b[1] - a[1]) * f) + ","
+                  + Math.round(a[2] + (b[2] - a[2]) * f) + ")";
+  }
+
+  var SEQ = ["--s0", "--s1", "--s2", "--s3", "--s4", "--s5", "--s6", "--s7"];
+  var DIV = ["--d-lo3", "--d-lo2", "--d-lo1", "--d-mid", "--d-hi1", "--d-hi2", "--d-hi3"];
+
+  function seqColor(t) { return interp(stops(SEQ), t); }
+  function divColor(t) { return interp(stops(DIV), t); }
+
+  /* Ratios are symmetric in log space: 0.5x should sit as far from the middle
+     as 2x does, which a linear scale would not do. */
+  function ratioToUnit(r, span) {
+    var l = Math.log(r) / Math.log(span || 3);
+    return 0.5 + Math.max(-0.5, Math.min(0.5, l / 2));
+  }
+
+  /* ---------- tooltip ---------- */
+
+  var tip = document.createElement("div");
+  tip.className = "tip";
+  tip.setAttribute("role", "status");
+  document.body.appendChild(tip);
+
+  function showTip(html, x, y) {
+    tip.innerHTML = html;
+    tip.style.left = x + "px";
+    tip.style.top = y + "px";
+    tip.setAttribute("data-show", "1");
+  }
+  function hideTip() { tip.removeAttribute("data-show"); }
+
+  function attachTip(el, htmlFn) {
+    el.addEventListener("pointerenter", function (e) {
+      var r = el.getBoundingClientRect();
+      showTip(htmlFn(), r.left + r.width / 2, r.top);
+    });
+    el.addEventListener("pointerleave", hideTip);
+  }
+
+  /* ---------- actogram ---------- */
+
+  function fmtHour(h) { return (h < 10 ? "0" + h : h) + ":00"; }
+
+  function buildActogram(host, matrix, opts) {
+    opts = opts || {};
+    var max = 0;
+    for (var d = 0; d < 7; d++) for (var h = 0; h < 24; h++) max = Math.max(max, matrix[d][h]);
+    if (!max) max = 1;
+
+    var grid = document.createElement("div");
+    grid.className = "acto-grid";
+    for (var dd = 0; dd < 7; dd++) {
+      for (var hh = 0; hh < 24; hh++) {
+        var v = matrix[dd][hh];
+        var cell = document.createElement("div");
+        cell.className = "acto-cell";
+        cell.style.background = seqColor(Math.pow(v / max, 0.85));
+        (function (day, hour, val) {
+          attachTip(cell, function () {
+            return "<b>" + DAYS[day] + " " + fmtHour(hour) + "</b><br>"
+              + val.toFixed(2) + "× " + (opts.unit || "average hour");
+          });
+        })(dd, hh, v);
+        grid.appendChild(cell);
+      }
+    }
+    host.appendChild(grid);
+    return grid;
+  }
+
+  function buildLargeActogram(host, matrix, opts) {
+    opts = opts || {};
+    host.innerHTML = "";
+    var wrap = document.createElement("div");
+    wrap.className = "acto-large";
+
+    var days = document.createElement("div");
+    days.className = "acto-days";
+    days.style.setProperty("--cell", "22px");
+    days.style.setProperty("--cell-gap", "2px");
+    DAYS.forEach(function (d) {
+      var s = document.createElement("span");
+      s.textContent = d;
+      days.appendChild(s);
+    });
+    wrap.appendChild(days);
+
+    var cellHost = document.createElement("div");
+    buildActogram(cellHost, matrix, opts);
+    cellHost.firstChild.style.setProperty("--cell-gap", "2px");
+    wrap.appendChild(cellHost);
+
+    var hours = document.createElement("div");
+    hours.className = "acto-hours";
+    for (var h = 0; h < 24; h++) {
+      var s = document.createElement("span");
+      s.textContent = h % 3 === 0 ? h : "";
+      hours.appendChild(s);
+    }
+    wrap.appendChild(hours);
+    host.appendChild(wrap);
+  }
+
+  /* ---------- language tiles ---------- */
+
+  function renderTiles(host, mode, selected) {
+    if (!D.wiki) return;
+    host.innerHTML = "";
+    var langs = D.wiki.languages;
+    var codes = Object.keys(langs).sort(function (a, b) {
+      return langs[a].stats.peak_hour - langs[b].stats.peak_hour
+          || langs[b].total_views - langs[a].total_views;
+    });
+    codes.forEach(function (c) {
+      var L = langs[c];
+      // A button, not a div: these select the edition shown enlarged above, so
+      // they need to be reachable and operable from the keyboard.
+      var tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "tile";
+      tile.dataset.code = c;
+      tile.setAttribute("aria-pressed", String(c === selected));
+
+      var head = document.createElement("span");
+      head.className = "tile-head";
+      var name = document.createElement("span");
+      name.className = "tile-name";
+      name.textContent = L.label;
+      var meta = document.createElement("span");
+      meta.className = "tile-meta";
+      meta.textContent = mode === "local"
+        ? "peak " + fmtHour(L.stats.peak_hour)
+        : "UTC " + fmtHour(utcPeak(L));
+      head.appendChild(name);
+      head.appendChild(meta);
+      tile.appendChild(head);
+
+      var body = document.createElement("span");
+      buildActogram(body, mode === "local" ? L.local : L.utc, {
+        unit: "the edition's average hour"
+      });
+      tile.appendChild(body);
+      host.appendChild(tile);
+    });
+  }
+
+  /* ---------- one edition, enlarged ---------- */
+
+  function renderEditionDetail(host, code, mode) {
+    if (!D.wiki) return;
+    var L = D.wiki.languages[code];
+    if (!L) return;
+    host.innerHTML = "";
+
+    var head = document.createElement("div");
+    head.className = "detail-head";
+
+    var title = document.createElement("h3");
+    title.className = "detail-name";
+    title.textContent = L.label + " Wikipedia";
+    head.appendChild(title);
+
+    var facts = document.createElement("div");
+    facts.className = "detail-facts";
+    var peak = mode === "local" ? L.stats.peak_hour : utcPeak(L);
+    [["Clock", mode === "local" ? L.tz.replace(/_/g, " ") : "UTC"],
+     ["Busiest hour", fmtHour(peak)],
+     ["Hour range", L.stats.amplitude.toFixed(1) + "x"],
+     ["Pageviews", (L.total_views / 1e6).toFixed(0) + "M"]
+    ].forEach(function (pair) {
+      var f = document.createElement("div");
+      f.className = "detail-fact";
+      var dt = document.createElement("span");
+      dt.textContent = pair[0];
+      var dd = document.createElement("strong");
+      dd.textContent = pair[1];
+      f.appendChild(dt);
+      f.appendChild(dd);
+      facts.appendChild(f);
+    });
+    head.appendChild(facts);
+    host.appendChild(head);
+
+    var chart = document.createElement("div");
+    buildLargeActogram(chart, mode === "local" ? L.local : L.utc,
+      { unit: "the edition's average hour" });
+    host.appendChild(chart);
+
+    if (L.spread && mode === "local") {
+      var warn = document.createElement("p");
+      warn.className = "note detail-note";
+      warn.textContent = "Readers of this edition are spread across many "
+        + "timezones, so this local clock is an approximation anchored to "
+        + L.tz.replace(/_/g, " ") + ".";
+      host.appendChild(warn);
+    }
+  }
+
+  function utcPeak(L) {
+    var best = 0, bv = -1;
+    for (var h = 0; h < 24; h++) {
+      var s = 0;
+      for (var d = 0; d < 7; d++) s += L.utc[d][h];
+      if (s > bv) { bv = s; best = h; }
+    }
+    return best;
+  }
+
+  /* ---------- table view ---------- */
+
+  function renderTable(host, cols, rows) {
+    host.innerHTML = "";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    var thead = document.createElement("thead");
+    var hr = document.createElement("tr");
+    cols.forEach(function (c) {
+      var th = document.createElement("th");
+      th.textContent = c;
+      th.setAttribute("scope", "col");
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    var tbody = document.createElement("tbody");
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      r.forEach(function (v, i) {
+        var cell = document.createElement(i === 0 ? "th" : "td");
+        if (i === 0) cell.setAttribute("scope", "row");
+        cell.textContent = v;
+        tr.appendChild(cell);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    host.appendChild(table);
+  }
+
+  /* ---------- svg helpers ---------- */
+
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, text) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  /* ---------- phase strip ---------- */
+
+  function renderPhase(host) {
+    if (!D.wiki) return;
+    host.innerHTML = "";
+    var langs = D.wiki.languages;
+    var codes = Object.keys(langs);
+    // Dots stack downward from each row's baseline. Twelve editions share
+    // 21:00 on the local clock, so the lower band needs room for a stack of
+    // twelve without reaching the band above it or the axis below.
+    var W = 960, H = 445, padL = 86, padR = 28, padT = 30, padB = 34;
+    var STEP = 13, R0 = 5.5;
+    var iw = W - padL - padR;
+    var floor = H - padB;
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, class: "chart",
+                          role: "img", "aria-label":
+      "Peak activity hour for 23 Wikipedia editions, in UTC and in local time" });
+
+    function x(h) { return padL + (h / 24) * iw; }
+
+    [0, 3, 6, 9, 12, 15, 18, 21, 24].forEach(function (h) {
+      svg.appendChild(el("line", { x1: x(h), x2: x(h), y1: padT, y2: floor,
+                                   class: h % 6 === 0 ? "ax-line" : "grid-line" }));
+      svg.appendChild(el("text", { x: x(h), y: floor + 17, "text-anchor": "middle",
+                                   "font-size": 10 }, fmtHour(h % 24)));
+    });
+
+    var rows = [
+      { y: 78,  label: "UTC clock",   get: function (L) { return utcPeak(L); } },
+      { y: 236, label: "Local clock", get: function (L) { return L.stats.peak_hour; } }
+    ];
+
+    var c1 = cssVar("--series-1"), c2 = cssVar("--series-2");
+
+    rows.forEach(function (row) {
+      svg.appendChild(el("line", { x1: padL, x2: W - padR, y1: row.y, y2: row.y,
+                                   class: "ax-line" }));
+      svg.appendChild(el("text", { x: padL - 14, y: row.y + 4, "text-anchor": "end",
+                                   class: "row-label" }, row.label));
+      var used = {};
+      codes.map(function (c) { return { c: c, h: row.get(langs[c]) }; })
+           .sort(function (a, b) { return a.h - b.h; })
+           .forEach(function (d) {
+        var tier = (used[d.h] = (used[d.h] || 0) + 1) - 1;
+        var dot = el("circle", {
+          cx: x(d.h), cy: row.y + R0 + 7 + tier * STEP, r: R0, class: "phase-dot",
+          fill: langs[d.c].spread ? c2 : c1 });
+        dot.appendChild(el("title", {}, langs[d.c].label + ", peak " + fmtHour(d.h)));
+        svg.appendChild(dot);
+      });
+    });
+
+    // One direct label, on the edition the prose singles out.
+    var eng = langs.en;
+    if (eng) {
+      svg.appendChild(el("text", {
+        x: x(eng.stats.peak_hour) + 11, y: rows[1].y + R0 + 11,
+        class: "phase-label" }, "English, 16:00"));
+    }
+    svg.appendChild(el("text", { x: padL, y: padT - 10, class: "phase-label" },
+      "One dot per edition, stacked where several share an hour"));
+
+    host.appendChild(svg);
+  }
+
+  /* ---------- horizontal bars ---------- */
+
+  function renderBars(host, rows, opts) {
+    opts = opts || {};
+    host.innerHTML = "";
+    var wrap = document.createElement("div");
+    wrap.className = "bars";
+    var max = opts.max || Math.max.apply(null, rows.map(function (r) { return r.value; }));
+    rows.forEach(function (r) {
+      var row = document.createElement("div");
+      row.className = "bar-row";
+      var n = document.createElement("div");
+      n.className = "bar-name";
+      n.textContent = r.name;
+      var track = document.createElement("div");
+      track.className = "bar-track";
+      var fill = document.createElement("div");
+      fill.className = "bar-fill";
+      fill.style.width = Math.max(1.5, (r.value / max) * 100) + "%";
+      fill.style.background = r.color || cssVar("--series-1");
+      track.appendChild(fill);
+      var v = document.createElement("div");
+      v.className = "bar-val";
+      v.textContent = opts.fmt ? opts.fmt(r.value) : r.value.toFixed(1);
+      row.appendChild(n); row.appendChild(track); row.appendChild(v);
+      if (r.tip) attachTip(row, function () { return r.tip; });
+      wrap.appendChild(row);
+    });
+    host.appendChild(wrap);
+  }
+
+  /* ---------- multi-series hour lines ---------- */
+
+  function renderLines(host, series, opts) {
+    opts = opts || {};
+    host.innerHTML = "";
+    var W = 960, H = 300, padL = 46, padR = 116, padT = 22, padB = 40;
+    var iw = W - padL - padR, ih = H - padT - padB;
+    var all = [];
+    series.forEach(function (s) { all = all.concat(s.values); });
+    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    lo = Math.min(lo, 0.8); hi = Math.max(hi, 1.2);
+    var pad = (hi - lo) * 0.12;
+    lo -= pad; hi += pad;
+
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, class: "chart",
+                          role: "img", "aria-label": opts.label || "Hourly curves" });
+    function x(h) { return padL + (h / 23) * iw; }
+    function y(v) { return padT + ih - ((v - lo) / (hi - lo)) * ih; }
+
+    if (opts.nightHours && opts.nightHours.length) {
+      opts.nightHours.forEach(function (h) {
+        svg.appendChild(el("rect", { x: x(h) - iw / 46, y: padT, width: iw / 23,
+                                     height: ih, class: "night-band" }));
+      });
+    }
+
+    var ticks = [];
+    for (var t = Math.ceil(lo * 10) / 10; t <= hi; t += 0.2) ticks.push(Math.round(t * 10) / 10);
+    ticks.forEach(function (v) {
+      svg.appendChild(el("line", { x1: padL, x2: padL + iw, y1: y(v), y2: y(v),
+                                   class: v === 1 ? "ax-line" : "grid-line" }));
+      svg.appendChild(el("text", { x: padL - 8, y: y(v) + 3.5, "text-anchor": "end",
+                                   "font-size": 10 }, v.toFixed(1) + "×"));
+    });
+    for (var h = 0; h < 24; h += 3) {
+      svg.appendChild(el("text", { x: x(h), y: H - padB + 17, "text-anchor": "middle",
+                                   "font-size": 10 }, fmtHour(h)));
+    }
+    svg.appendChild(el("text", { x: padL + iw / 2, y: H - 4, "text-anchor": "middle",
+                                 "font-size": 10 }, opts.xlabel || "Hour of day (UTC)"));
+
+    series.forEach(function (s) {
+      var d = s.values.map(function (v, i) {
+        return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1);
+      }).join(" ");
+      svg.appendChild(el("path", { d: d, fill: "none", stroke: s.color,
+                                   "stroke-width": 2, "stroke-linejoin": "round",
+                                   "stroke-linecap": "round" }));
+      svg.appendChild(el("circle", { cx: x(23), cy: y(s.values[23]), r: 3.5,
+                                     fill: s.color, stroke: cssVar("--surface"),
+                                     "stroke-width": 1.5 }));
+    });
+
+    // Direct labels at the line ends, pushed apart so two close series do not
+    // stack their names on top of each other.
+    var ends = series.map(function (s) {
+      return { name: s.name, y: y(s.values[23]) };
+    }).sort(function (a, b) { return a.y - b.y; });
+    for (var k = 1; k < ends.length; k++) {
+      if (ends[k].y - ends[k - 1].y < 14) ends[k].y = ends[k - 1].y + 14;
+    }
+    ends.forEach(function (e) {
+      svg.appendChild(el("text", { x: x(23) + 10, y: e.y + 4, "font-size": 11,
+                                   fill: "var(--ink-2)" }, e.name));
+    });
+
+    host.appendChild(svg);
+  }
+
+  /* ---------- sparkline ---------- */
+
+  function sparkline(values, mid) {
+    var W = 62, H = 17;
+    var lo = Math.min.apply(null, values), hi = Math.max.apply(null, values);
+    if (hi === lo) { hi = lo + 1; }
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, class: "spark",
+                          "aria-hidden": "true" });
+    function y(v) { return H - 1.5 - ((v - lo) / (hi - lo)) * (H - 3); }
+    if (mid != null && mid >= lo && mid <= hi) {
+      svg.appendChild(el("line", { x1: 0, x2: W, y1: y(mid), y2: y(mid),
+                                   class: "grid-line" }));
+    }
+    var d = values.map(function (v, i) {
+      return (i ? "L" : "M") + (i / (values.length - 1) * W).toFixed(1) + " " + y(v).toFixed(1);
+    }).join(" ");
+    svg.appendChild(el("path", { d: d, fill: "none", stroke: "var(--accent)",
+                                 "stroke-width": 1.5, "stroke-linejoin": "round" }));
+    return svg;
+  }
+
+  /* ---------- ranked topic lists ---------- */
+
+  function prettyTitle(t) { return t.replace(/_/g, " "); }
+
+  /* ---------- scatter ---------- */
+
+  function renderScatter(canvas, pts) {
+    if (!pts || !pts.length) return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var cssW = canvas.clientWidth || 900;
+    var cssH = Math.round(Math.min(520, Math.max(340, cssW * 0.52)));
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    canvas.style.height = cssH + "px";
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    var padL = 68, padR = 20, padT = 20, padB = 44;
+    var iw = cssW - padL - padR, ih = cssH - padT - padB;
+    var XS = 5, YS = 6;
+    function x(v) { return padL + (0.5 + Math.log(v) / Math.log(XS) / 2) * iw; }
+    function y(v) { return padT + ih - (0.5 + Math.log(v) / Math.log(YS) / 2) * ih; }
+
+    ctx.fillStyle = cssVar("--surface-sunk");
+    ctx.fillRect(padL, padT, iw, ih);
+
+    ctx.strokeStyle = cssVar("--rule");
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x(1), padT); ctx.lineTo(x(1), padT + ih);
+    ctx.moveTo(padL, y(1)); ctx.lineTo(padL + iw, y(1));
+    ctx.stroke();
+
+    ctx.font = "10px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = cssVar("--ink-3");
+    ctx.textAlign = "center";
+    [0.5, 0.75, 1, 1.5, 2, 3].forEach(function (v) {
+      if (x(v) < padL || x(v) > padL + iw) return;
+      ctx.fillText(v + "×", x(v), cssH - padB + 15);
+    });
+    ctx.textAlign = "right";
+    [0.5, 0.75, 1, 1.5, 2, 3].forEach(function (v) {
+      if (y(v) < padT || y(v) > padT + ih) return;
+      ctx.fillText(v + "×", padL - 9, y(v) + 3.5);
+    });
+    ctx.textAlign = "center";
+    ctx.fillStyle = cssVar("--ink-2");
+    ctx.fillText("read more in the quiet hours →", padL + iw * 0.75, cssH - padB + 32);
+    ctx.save();
+    ctx.translate(15, padT + ih / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("read more at the weekend →", 0, 0);
+    ctx.restore();
+
+    // A handful of articles sit beyond the axes. Clamp them to the boundary
+    // rather than dropping them, so the count on screen matches the count in
+    // the caption, and mark them hollow so a pile-up on the edge cannot be
+    // mistaken for a cluster of real values.
+    var coords = [];
+    var clampedCount = 0;
+    pts.forEach(function (p) {
+      var px = x(p[1]), py = y(p[2]), off = false;
+      if (px < padL) { px = padL; off = true; }
+      else if (px > padL + iw) { px = padL + iw; off = true; }
+      if (py < padT) { py = padT; off = true; }
+      else if (py > padT + ih) { py = padT + ih; off = true; }
+      if (off) clampedCount++;
+      var r = Math.max(1.6, Math.min(7, Math.sqrt(p[3]) / 260));
+      var col = divColor(ratioToUnit(p[1], XS));
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.globalAlpha = off ? 1 : 0.66;
+      if (off) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = col;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      coords.push([px, py, r, p[0], p[1], p[2], p[3]]);
+    });
+    canvas._clamped = clampedCount;
+
+    canvas._coords = coords;
+    canvas.onpointermove = function (e) {
+      var r = canvas.getBoundingClientRect();
+      var mx = e.clientX - r.left, my = e.clientY - r.top;
+      var best = null, bd = 144;
+      for (var i = 0; i < coords.length; i++) {
+        var dx = coords[i][0] - mx, dy = coords[i][1] - my;
+        var d2 = dx * dx + dy * dy;
+        if (d2 < bd) { bd = d2; best = coords[i]; }
+      }
+      if (best) {
+        showTip("<b>" + prettyTitle(best[3]) + "</b><br>"
+          + best[4].toFixed(2) + "× in quiet hours<br>"
+          + best[5].toFixed(2) + "× at weekends<br>"
+          + best[6].toLocaleString() + " views", e.clientX, e.clientY);
+      } else hideTip();
+    };
+    canvas.onpointerleave = hideTip;
+  }
+
+  /* ---------- wiring ---------- */
+
+  function byId(id) { return document.getElementById(id); }
+
+  function segment(host, onChange) {
+    if (!host) return;
+    host.addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      Array.prototype.forEach.call(host.querySelectorAll("button"), function (x) {
+        x.setAttribute("aria-pressed", String(x === b));
+      });
+      onChange(b.dataset.value);
+    });
+  }
+
+  window.CIRCADIAN_RENDER = { redraws: redraws, renderTiles: renderTiles,
+    renderPhase: renderPhase, renderBars: renderBars, renderLines: renderLines,
+    renderScatter: renderScatter, renderTable: renderTable,
+    renderEditionDetail: renderEditionDetail,
+    buildLargeActogram: buildLargeActogram, buildActogram: buildActogram,
+    seqColor: seqColor, divColor: divColor, cssVar: cssVar, byId: byId,
+    segment: segment, sparkline: sparkline, prettyTitle: prettyTitle,
+    fmtHour: fmtHour, DAYS: DAYS, attachTip: attachTip };
+})();
+</script>

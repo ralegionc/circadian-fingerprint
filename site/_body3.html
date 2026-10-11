@@ -1,0 +1,120 @@
+<section class="sec">
+  <div class="col sec-head">
+    <div class="eyebrow">Longitude</div>
+    <h2>What gets read at three in the morning</h2>
+    <p>This is the question the whole exercise is really for. Wikipedia's
+      hourly API will not answer it, since per-article data stops at daily
+      granularity, so the numbers below come from the raw hourly dumps: all four
+      weeks of them, filtered down to a watchlist of the 4,250 articles that
+      reached the daily top 1,000 at some point in September.</p>
+    <p>Each article's curve is the <b>median across days</b> of its own daily
+      shape, indexed against the curve of the whole watchlist. Taking the median
+      matters more than it sounds: a first pass without it returned Teachers'
+      Day and a run of US Open players, articles with one enormous day whose
+      single burst set the entire profile. Anything with more than 30% of its
+      views on one day is now dropped outright. <b>3,100 articles</b> survive.</p>
+    <p>And the answer, for English Wikipedia, is that the question is broken.</p>
+  </div>
+
+  <figure class="fig band">
+    <div class="rank-cols">
+      <div class="rank">
+        <div class="rank-head">
+          <div class="rank-title">Read in the quiet hours</div>
+          <div class="rank-sub">06:00 to 11:00 UTC, when the watchlist as a whole is at its lowest</div>
+        </div>
+        <div id="rank-en-quiet"></div>
+      </div>
+      <div class="rank">
+        <div class="rank-head">
+          <div class="rank-title">Read in the busy hours</div>
+          <div class="rank-sub">18:00 to 23:00 UTC, twelve hours opposite</div>
+        </div>
+        <div id="rank-en-busy"></div>
+      </div>
+    </div>
+    <figcaption>Sparklines show each article's 24-hour index against the
+      watchlist baseline, with the line marking 1.0. Numbers are the ratio
+      between the quiet-hours and busy-hours index.</figcaption>
+  </figure>
+
+  <div class="col">
+    <p>The left-hand column is not a list of nocturnal subjects. It is the
+      Philippines, India, Vietnam, Thailand and Australia. The right-hand column
+      is the United States and Britain. At 09:00 UTC the Americas are asleep and
+      South Asia is wide awake, so an article's hour-of-day profile on a
+      globally read edition is mostly a readout of <b>where its readers
+      live</b>. The clock is measuring longitude.</p>
+    <p>There is no fix available inside English Wikipedia. There is no timezone
+      to convert to, because the readers do not share one.</p>
+  </div>
+
+  <figure class="fig band">
+    <div class="panel">
+      <canvas id="topic-scatter" class="scatter-canvas" role="img"
+              aria-label="Every article plotted by when it is read: quiet-hours index against weekend index"></canvas>
+    </div>
+    <figcaption>All <span id="scatter-total">3,100</span> articles at once.
+      Horizontal position is the
+      quiet-hours index, vertical is the weekend index, and dot size is total
+      views. Both axes are logarithmic, so 0.5x sits as far from the centre as
+      2x does. <span id="scatter-clamped"></span> The
+      horizontal spread is geography. The
+      vertical spread, as the next section argues, is the part that is actually
+      about the subject.</figcaption>
+  </figure>
+</section>
+
+<section class="sec">
+  <div class="col sec-head">
+    <div class="eyebrow">The axis that survives</div>
+    <h2>Tuesday is Tuesday everywhere</h2>
+    <p>Day of week has none of the hour's ambiguity. Timezones shift the clock;
+      they do not shift the calendar. Whatever longitude a reader sits at,
+      Saturday arrives for them on Saturday, and the weekday axis is therefore
+      the one place in this data where a difference between two articles is a
+      difference about the articles.</p>
+    <p>It works. Sorting the same 3,100 articles by weekend index separates them
+      cleanly into <b>sport and entertainment</b> at one end and <b>news,
+      institutions and reference</b> at the other, with no topic labels supplied
+      anywhere in the pipeline.</p>
+  </div>
+
+  <figure class="fig band">
+    <div class="rank-cols">
+      <div class="rank">
+        <div class="rank-head">
+          <div class="rank-title">Read at the weekend</div>
+          <div class="rank-sub">Weekend index, relative to the same article's weekdays</div>
+        </div>
+        <div id="rank-en-weekend"></div>
+      </div>
+      <div class="rank">
+        <div class="rank-head">
+          <div class="rank-title">Read on weekdays</div>
+          <div class="rank-sub">The same measure, from the other end</div>
+        </div>
+        <div id="rank-en-weekday"></div>
+      </div>
+    </div>
+    <figcaption>Sparklines run Monday to Sunday. The weekend column is the
+      Women's Rugby World Cup, American college football, a UFC card and
+      <i>Strictly Come Dancing</i>, which is to say Saturday-night television and
+      sport that happens at the weekend. The weekday column is a shooting, an
+      airstrike, a central-bank nomination and a finance minister, because that
+      is when institutions announce things and when news breaks.</figcaption>
+  </figure>
+
+  <div class="col">
+    <p>The cleanest check that the method works is an article that names its own
+      answer. <b>Thursday Night Football</b> sits near the bottom of the weekend
+      ranking with an index of 0.20. Its daily curve reads 0.38, 0.45, 0.50,
+      <b>1.93</b>, <b>3.22</b>, 0.25, 0.27 from Monday to Sunday: a spike on
+      Thursday, a bigger one on Friday as people look up what happened, and
+      nothing at the weekend. Nobody told the pipeline when the game is played.
+      It recovered the schedule from timestamps alone.</p>
+    <p>The same axis picks out working tools without being asked. <b>ChatGPT</b>
+      comes in at 0.69, elevated Tuesday through Thursday and down on both
+      weekend days, which is the shape of something people use at a desk.</p>
+  </div>
+</section>

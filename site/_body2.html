@@ -1,0 +1,121 @@
+<section class="sec">
+  <div class="col sec-head">
+    <div class="eyebrow">A second organism</div>
+    <h2>GitHub keeps the calendar Wikipedia ignores</h2>
+    <p>GH Archive publishes every public event on GitHub, one file per hour.
+      Four weeks of it is 104.6 million events and 54.9 GB of compressed JSON,
+      and it records no location at all, so the only clock available is UTC.</p>
+    <p>That turns out to matter, because it puts GitHub in exactly the position
+      English Wikipedia is in: a population spread around the world, measured on
+      a single clock. Their daily swings come out almost identical. English
+      Wikipedia's day moves by <b>1.67x</b>; GitHub's human day moves by
+      <b>1.66x</b>. Neither number says anything about how nocturnal programmers
+      are. Both say the users are everywhere.</p>
+    <p>Which is the whole argument of this page in one chart. Put all three
+      curves on the UTC clock and <b>German Wikipedia</b>, read almost entirely
+      inside one timezone, swings by 11.5x and comes to a point. The two
+      globally-read services flatten into waves barely a sixth as deep, because
+      at every hour some of their audience is asleep and some is not.</p>
+    <p>But flat is not the same as identical. The two flat curves are
+      <b>uncorrelated</b> (r = &minus;0.04) and peak six hours apart. English
+      Wikipedia tops out at 20:00 UTC, GitHub at 14:00 UTC, the hour when
+      Europe's afternoon overlaps North America's morning and the largest slice
+      of the working world is at a desk at the same moment. Amplitude tells you
+      how spread out an audience is. The peak tells you whether you are looking
+      at work or at leisure.</p>
+  </div>
+
+  <figure class="fig band">
+    <div class="panel">
+      <div class="legend" style="margin-bottom:.8rem">
+        <span class="legend-item"><span class="swatch" style="background:var(--series-1)"></span>German Wikipedia (one timezone)</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--series-2)"></span>English Wikipedia (worldwide)</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--series-3)"></span>GitHub, people (worldwide)</span>
+      </div>
+      <div id="cross-hours"></div>
+    </div>
+    <figcaption>Hour of day on the UTC clock, each series scaled to its own
+      24-hour average so the shapes can be compared directly. German Wikipedia
+      is the control: one language, one timezone, and a daily cycle you could
+      set a watch by.</figcaption>
+  </figure>
+
+  <div class="col">
+    <p>The week is where GitHub separates itself. Where the typical Wikipedia
+      edition spans 13% from its quietest day to its busiest, the number of
+      people reviewing code on GitHub falls to <b>30% of its weekday level</b>
+      on Saturday and Sunday, and stays there.</p>
+  </div>
+
+  <figure class="fig band">
+    <div class="panel">
+      <div id="gh-review-large"></div>
+    </div>
+    <figcaption>Distinct accounts reviewing pull requests, by UTC hour and
+      weekday, four weeks of September 2025. The weekend is not a dip in this
+      chart. It is a different colour of block.</figcaption>
+  </figure>
+
+  <figure class="fig band">
+    <div class="controls">
+      <div class="legend">
+        <span class="legend-item">Fewer people
+          <span class="ramp" aria-hidden="true"><i style="background:var(--s0)"></i><i style="background:var(--s1)"></i><i style="background:var(--s2)"></i><i style="background:var(--s3)"></i><i style="background:var(--s4)"></i><i style="background:var(--s5)"></i><i style="background:var(--s6)"></i><i style="background:var(--s7)"></i></span>
+          More people</span>
+      </div>
+    </div>
+    <div class="tiles" id="gh-tiles"></div>
+    <figcaption>The same four weeks, split by what people were doing. Writing
+      code holds up at weekends far better than talking about it does. Starring
+      a repository, the one activity here that is closer to browsing than to
+      work, barely notices the weekend at all.</figcaption>
+  </figure>
+
+  <figure class="fig col">
+    <div id="gh-weekday"></div>
+    <figcaption>Weekend activity as a share of the weekday level, counting
+      distinct accounts. Anything below <b>0.80</b> is drawn in orange.</figcaption>
+  </figure>
+</section>
+
+<section class="sec">
+  <div class="col sec-head">
+    <div class="eyebrow">Method</div>
+    <h2>Counting events would have counted robots</h2>
+    <p>The obvious way to build these charts is to count events per hour. On
+      GitHub that measures the wrong thing, and it says so loudly enough to
+      catch.</p>
+    <p>Counted as <b>events</b>, GitHub pushes are <em>busier</em> at weekends:
+      1.04 times the weekday rate. Counted as <b>distinct accounts</b>, 11%
+      fewer people push at weekends than on a weekday. Both numbers come from
+      the same four weeks. The first one is measuring scripts.</p>
+    <p>In a single sampled hour, the ten busiest accounts produced <b>24.8% of
+      all pushes</b>, and the heaviest of them carried no <code>[bot]</code>
+      suffix at all. Across the full month, an average of <b>117 accounts per
+      hour</b> each emitted 50 or more events, between them 15.3% of everything
+      attributed to humans. So the charts above count people, once each, however
+      hard they were typing.</p>
+    <p>Separating the robots out gives the clearest picture of what a machine's
+      day looks like. Bots as a population rise and fall with the humans who
+      trigger them, because most of them are continuous integration waiting for
+      someone to push. Bot <em>output</em> does something else entirely: it
+      spikes at <b>01:00 and 12:00 UTC</b>, the hours a scheduled job fires, and
+      it is the same on Sunday as on Wednesday. Its weekend ratio is
+      <b>1.00</b>.</p>
+  </div>
+
+  <figure class="fig band">
+    <div class="panel">
+      <div class="legend" style="margin-bottom:.8rem">
+        <span class="legend-item"><span class="swatch" style="background:var(--series-1)"></span>People (accounts)</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--series-2)"></span>Bots (accounts)</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--series-3)"></span>Bots (events)</span>
+      </div>
+      <div id="gh-bot-lines"></div>
+    </div>
+    <figcaption>Each series is scaled to its own 24-hour average, so the shapes
+      can be compared directly. The two bot lines are the same robots counted
+      two ways. <b>28.8%</b> of all GitHub events in the window came from
+      accounts with a <code>[bot]</code> suffix.</figcaption>
+  </figure>
+</section>

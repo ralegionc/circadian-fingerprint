@@ -1,0 +1,74 @@
+<section class="sec">
+  <div class="col sec-head">
+    <div class="eyebrow">One timezone</div>
+    <h2>Asking the question properly</h2>
+    <p>There is one way to get a real answer about three in the morning, and it
+      is to pick an edition where three in the morning exists. Japanese
+      Wikipedia is close to ideal: its readers are overwhelmingly in one
+      country, Japan keeps a single timezone, and it has observed no daylight
+      saving since 1951. Add nine hours to UTC and you have the clock its
+      readers were actually looking at.</p>
+    <p>So the pipeline was pointed at <code>ja.wikipedia</code> as well: the top
+      1,000 articles of each sample day, the same four weeks of hourly dumps,
+      the same median-across-days method, the same index against the edition's
+      own baseline. <b>3,007 articles</b> cleared the filters, across 27 full
+      JST days.</p>
+    <p>The quiet window immediately moves to where it belongs. On English
+      Wikipedia the six quietest hours were 06:00 to 11:00 UTC, the middle of
+      the night in Chicago and the middle of the morning in Delhi. On Japanese
+      Wikipedia they are <b>02:00 to 07:00 JST</b>, the middle of the night for
+      essentially every reader.</p>
+  </div>
+
+  <figure class="fig band">
+    <div class="rank-cols">
+      <div class="rank">
+        <div class="rank-head">
+          <div class="rank-title">Read between 2am and 7am</div>
+          <div class="rank-sub">Works, studios and platforms from the top 30. Individual performers, who are most of that list, are described below rather than named.</div>
+        </div>
+        <div id="rank-ja-night"></div>
+      </div>
+      <div class="rank">
+        <div class="rank-head">
+          <div class="rank-title">Read between 2pm and 7pm</div>
+          <div class="rank-sub">The twelve most over-represented afternoon articles, unedited</div>
+        </div>
+        <div id="rank-ja-day"></div>
+      </div>
+    </div>
+    <figcaption>Sparklines run midnight to midnight in <b>JST</b>, with the line
+      marking 1.0. Numbers are the ratio between the 02:00&ndash;07:00 index and
+      the 14:00&ndash;19:00 index, so a high number means the small hours and a
+      low number means the afternoon. English glosses are added by hand; sumo
+      wrestlers are filed under their birth names, with the fighting name in
+      brackets.</figcaption>
+  </figure>
+
+  <div class="col">
+    <p>The afternoon column is not a grab bag. <b>Seventeen of the top
+      twenty-four are sumo</b>: wrestlers, a commentator, the list of tournament
+      champions and the article on the prize banners carried around the ring.
+      The September grand tournament ran from the 14th to the 28th, inside the
+      window. The top division fights late in the afternoon and the broadcast
+      finishes around six, and <b>fourteen of those seventeen peak at 17:00 or
+      18:00 JST</b>, eleven of them at 18:00 exactly: the hour people reach for
+      a phone to look up the wrestler they have just watched.</p>
+    <p>Nothing in the pipeline knows what sumo is, when the tournament was held,
+      or which of 3,007 article titles are wrestlers. It has hourly counts and
+      nothing else, and it reconstructed a broadcast schedule from them. That is
+      the same trick as <i>Thursday Night Football</i> in the previous section,
+      run on a different continent against a different clock.</p>
+    <p>The small hours are the other half of the answer, and they are blunt.
+      Reading down the thirty articles most over-represented between 2am and
+      7am, the great majority are <b>adult-industry subjects</b>, studios,
+      platforms and performers, with late-night anime and idol groups making up
+      most of the rest. It is the strongest single topical signal anywhere in
+      this project, and it is invisible on English Wikipedia, where 3am is not a
+      time of day so much as a region of the world.</p>
+    <p>Which is the whole point. Japanese Wikipedia in the afternoon is a second
+      screen for the television. At four in the morning it is something else.
+      The only thing standing between English Wikipedia and the same answer is
+      that its readers do not share a clock.</p>
+  </div>
+</section>

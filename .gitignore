@@ -1,0 +1,5 @@
+data/raw/
+data/processed/
+site/data.js
+__pycache__/
+*.pyc

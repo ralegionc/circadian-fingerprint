@@ -1,0 +1,226 @@
+<title>Actogram of the Internet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap">
+
+<style>
+:root {
+  color-scheme: light;
+
+  --paper:        #f4f5f7;
+  --surface:      #ffffff;
+  --surface-sunk: #eaecf0;
+  --rule:         #d6d9e0;
+  --rule-soft:    #e4e6ec;
+  --ink:          #14161a;
+  --ink-2:        #4d545f;
+  --ink-3:        #79818e;
+
+  --accent:       #256abf;
+  --night:        #eda100;
+
+  /* Categorical series. Verified with src/check_palette.py: every pair clears
+     normal-vision dE 15 and simulated-CVD dE 8, and each clears 3:1 on its own
+     surface. Do not substitute a colour here without re-running that check. */
+  --series-1:     #256abf;
+  --series-2:     #eb6834;
+  --series-3:     #036603;
+
+  /* Sequential blue, 100 -> 700. Low values recede toward the surface. */
+  --s0: #eef4fd; --s1: #cde2fb; --s2: #9ec5f4; --s3: #6da7ec;
+  --s4: #3987e5; --s5: #256abf; --s6: #184f95; --s7: #0d366b;
+
+  /* Diverging: blue <-> red across a neutral grey midpoint. */
+  --d-lo3: #184f95; --d-lo2: #2a78d6; --d-lo1: #9ec5f4;
+  --d-mid: #e6e6e2;
+  --d-hi1: #f3b0ae; --d-hi2: #e34948; --d-hi3: #9e2726;
+
+  --shadow: 0 1px 2px rgba(16, 22, 34, .06), 0 8px 24px -12px rgba(16, 22, 34, .18);
+
+  --measure: 67ch;
+  --band: 1120px;
+
+  --step--1: clamp(.78rem, .76rem + .1vw, .84rem);
+  --step-0:  clamp(1rem, .97rem + .16vw, 1.09rem);
+  --step-1:  clamp(1.2rem, 1.12rem + .38vw, 1.45rem);
+  --step-2:  clamp(1.5rem, 1.33rem + .8vw, 2.1rem);
+  --step-4:  clamp(2.7rem, 1.9rem + 3.6vw, 5.2rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:        #0e1116;
+    --surface:      #161b22;
+    --surface-sunk: #11151b;
+    --rule:         #2a313b;
+    --rule-soft:    #1f252d;
+    --ink:          #eef1f5;
+    --ink-2:        #a4aeba;
+    --ink-3:        #767f8b;
+    --accent:       #5598e7;
+    --series-1:     #3987e5;
+    --series-2:     #eb6834;
+    --series-3:     #2fc48c;
+    --s0: #131a24; --s1: #16263c; --s2: #163556; --s3: #184f95;
+    --s4: #256abf; --s5: #3987e5; --s6: #6da7ec; --s7: #9ec5f4;
+    --d-lo3: #9ec5f4; --d-lo2: #5598e7; --d-lo1: #26496f;
+    --d-mid: #2e3440;
+    --d-hi1: #6d2f30; --d-hi2: #e34948; --d-hi3: #f3b0ae;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 30px -14px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:        #0e1116;
+  --surface:      #161b22;
+  --surface-sunk: #11151b;
+  --rule:         #2a313b;
+  --rule-soft:    #1f252d;
+  --ink:          #eef1f5;
+  --ink-2:        #a4aeba;
+  --ink-3:        #767f8b;
+  --accent:       #5598e7;
+  --series-1:     #3987e5;
+  --series-2:     #eb6834;
+  --series-3:     #2fc48c;
+  --s0: #131a24; --s1: #16263c; --s2: #163556; --s3: #184f95;
+  --s4: #256abf; --s5: #3987e5; --s6: #6da7ec; --s7: #9ec5f4;
+  --d-lo3: #9ec5f4; --d-lo2: #5598e7; --d-lo1: #26496f;
+  --d-mid: #2e3440;
+  --d-hi1: #6d2f30; --d-hi2: #e34948; --d-hi3: #f3b0ae;
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 30px -14px rgba(0,0,0,.8);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Literata, Georgia, "Times New Roman", serif;
+  font-size: var(--step-0);
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+section { padding: 0 1.25rem; }
+
+.col  { max-width: var(--measure); margin-inline: auto; }
+.band { max-width: var(--band);    margin-inline: auto; }
+
+h1, h2, h3, .eyebrow, .display, .fact dd, .seg button, .tile-name {
+  font-family: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+}
+h1, h2, h3 { text-wrap: balance; }
+
+h1 { font-size: var(--step-4); line-height: .96; font-weight: 800;
+     letter-spacing: -.028em; margin: 0; }
+h2 { font-size: var(--step-2); line-height: 1.08; font-weight: 700;
+     letter-spacing: -.02em; margin: 0; }
+h3 { font-size: var(--step-1); line-height: 1.2; font-weight: 600;
+     letter-spacing: -.012em; margin: 0; }
+
+p { margin: 0; }
+.col > * + * { margin-top: 1.05em; }
+
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: .18em; }
+
+.eyebrow {
+  font-size: .68rem; font-weight: 600; letter-spacing: .17em;
+  text-transform: uppercase; color: var(--ink-3);
+  display: flex; align-items: center; gap: .7rem;
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.lede { font-size: var(--step-1); line-height: 1.45; color: var(--ink-2); }
+.lede strong { color: var(--ink); font-weight: 600; }
+
+.note { font-size: var(--step--1); color: var(--ink-3); line-height: 1.55; }
+
+/* ---------- masthead ---------- */
+
+.masthead { padding-top: clamp(2.5rem, 6vw, 4.5rem);
+            padding-bottom: clamp(1.5rem, 3vw, 2.25rem); }
+.masthead .band { display: grid; gap: 1.4rem; }
+.kicker {
+  font-family: "IBM Plex Mono", monospace; font-size: .7rem;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--accent);
+}
+.masthead h1 { max-width: 15ch; }
+.masthead .lede { max-width: 56ch; }
+
+.facts {
+  display: flex; flex-wrap: wrap; gap: 0 2.6rem;
+  border-top: 1px solid var(--rule); padding-top: 1.1rem;
+}
+.fact { display: grid; gap: .1rem; padding: .3rem 0; }
+.fact dt { font-family: "IBM Plex Mono", monospace; font-size: .64rem;
+           letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+.fact dd { margin: 0; font-size: 1.5rem; font-weight: 700;
+           letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+
+/* ---------- section rhythm ---------- */
+
+.sec { padding-top: clamp(2.75rem, 6vw, 4.25rem); }
+.sec > .col { display: grid; gap: 1.05rem; }
+.sec-head { display: grid; gap: .8rem; }
+
+figure { margin: 0; }
+.fig { margin-top: 1.9rem; margin-bottom: .5rem; }
+figcaption {
+  font-size: var(--step--1); color: var(--ink-3); line-height: 1.55;
+  max-width: 74ch; margin-top: .95rem;
+}
+figcaption b { color: var(--ink-2); font-weight: 600; }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--rule-soft);
+  border-radius: 10px; padding: 1.15rem; box-shadow: var(--shadow);
+}
+
+.scroll-x { overflow-x: auto; overscroll-behavior-x: contain; }
+
+/* ---------- controls ---------- */
+
+.controls { display: flex; flex-wrap: wrap; align-items: center;
+            gap: .6rem 1rem; margin-bottom: 1.15rem; }
+.seg {
+  display: inline-flex; background: var(--surface-sunk);
+  border: 1px solid var(--rule-soft); border-radius: 8px; padding: 2px; gap: 2px;
+}
+.seg button {
+  font-size: .72rem; font-weight: 600; letter-spacing: .04em;
+  padding: .44rem .85rem; border: 0; border-radius: 6px;
+  background: transparent; color: var(--ink-2); cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { color: #0e1116; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .seg button[aria-pressed="true"] { color: #0e1116; }
+}
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.ctl-label { font-family: "IBM Plex Mono", monospace; font-size: .68rem;
+             letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+
+/* ---------- legend ---------- */
+
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem .9rem; }
+.legend-item { display: inline-flex; align-items: center; gap: .4rem;
+               font-size: var(--step--1); color: var(--ink-2); }
+.swatch { width: 11px; height: 11px; border-radius: 2px; flex: none;
+          border: 1px solid rgba(128,128,128,.3); }
+.ramp { display: flex; height: 11px; width: 128px; border-radius: 2px;
+        overflow: hidden; border: 1px solid rgba(128,128,128,.3); }
+.ramp i { flex: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>

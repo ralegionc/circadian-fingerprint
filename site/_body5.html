@@ -1,0 +1,60 @@
+<footer class="colophon">
+  <div class="col">
+    <div class="eyebrow">Colophon</div>
+    <h3>Where the numbers come from</h3>
+    <div class="src-list">
+      <p><b>Wikimedia Pageviews API</b>, hourly aggregate endpoint, human traffic
+        only, 23 language editions, 1 to 28 September 2025. 11.7 billion
+        pageviews. Hourly granularity exists only on the aggregate endpoint; the
+        per-article endpoint stops at daily, which is why the topic section uses
+        the dumps instead.</p>
+      <p><b>Wikimedia pageview dumps</b>, hourly per-article files, 1 to 28
+        September 2025, filtered to a watchlist built by unioning the daily
+        top 1,000 across ten spread-out days.</p>
+      <p><b>GH Archive</b>, every public GitHub event, 672 hourly files,
+        1 to 28 September 2025. 104.6 million events, 54.9 GB compressed.</p>
+    </div>
+
+    <h3>Things worth knowing before quoting any of this</h3>
+    <div class="src-list">
+      <p><b>The local-time view is an approximation for five editions.</b>
+        Mapping a language to one timezone is close to exact for Japanese or
+        Polish and rough for English, Spanish, Arabic, Portuguese and Russian.
+        Those five were flagged in the source before the analysis ran, not after
+        seeing which ones came out flat, and they are marked on every chart.</p>
+      <p><b>GitHub has no local-time view at all.</b> GH Archive records no
+        location, so every GitHub chart here is on the UTC clock, and its
+        hourly amplitude is damped by exactly the longitude-mixing that flattens
+        English Wikipedia.</p>
+      <p><b>Four weeks is four Saturdays.</b> The article-level weekend index
+        rests on four occurrences of each weekday. That is enough to separate
+        rugby from earthquakes, and enough that a single big Saturday cannot
+        carry an article on its own, but not enough to trust a small difference
+        between two individual articles.</p>
+      <p><b>The window is September 2025, not this month.</b> GH Archive's recent
+        files are incomplete: a sampled 2026 hour contained 2,248 events and no
+        PushEvents whatsoever, against 165,169 events in the equivalent 2025
+        hour.</p>
+      <p><b>Every chart is scaled to its own average.</b> Nothing here compares
+        absolute traffic between platforms or editions, only the shape of the
+        rise and fall.</p>
+    </div>
+
+    <h3>Method notes</h3>
+    <div class="src-list">
+      <p>Each GH Archive file covers exactly one UTC hour, so the filename
+        carries the timestamp and no JSON parsing is needed: <code>type</code>
+        and <code>actor.login</code> sit adjacent in every record, so one regex
+        pass over the decompressed bytes gives the joint distribution of event
+        type and bot status exactly. Checked against a hand-parsed hour, it
+        matched to the event.</p>
+      <p>The pageview dumps are sorted by domain code, so one edition's block is
+        contiguous and the reader stops as soon as the code no longer matches.
+        That reads 49% of each file for English and 73% for Japanese instead of
+        all of it.</p>
+      <p>Processes rather than threads throughout: gzip decompression releases
+        the GIL but the regex scan does not, so threads capped out at 1.4x no
+        matter how many cores were available.</p>
+    </div>
+  </div>
+</footer>

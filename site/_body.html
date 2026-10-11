@@ -1,0 +1,134 @@
+<header class="masthead">
+  <div class="band">
+    <div class="kicker">1&ndash;28 September 2025 &middot; Wikipedia &amp; GitHub</div>
+    <h1>Actogram of the Internet</h1>
+    <p class="lede">A sleep lab plots an animal's activity as hours across, days
+      down, and reads the rhythm off the page. Do the same to two of the world's
+      busiest websites and <strong>one of them turns out to keep a clock, the
+      other a calendar</strong>.</p>
+    <dl class="facts">
+      <div class="fact"><dt>Pageviews</dt><dd>11.7 B</dd></div>
+      <div class="fact"><dt>GitHub events</dt><dd>104.6 M</dd></div>
+      <div class="fact"><dt>Hours measured</dt><dd>672</dd></div>
+      <div class="fact"><dt>Editions</dt><dd>23</dd></div>
+      <div class="fact"><dt>Raw data read</dt><dd>106.7 GB</dd></div>
+    </dl>
+  </div>
+</header>
+
+<section class="sec">
+  <div class="col sec-head">
+    <div class="eyebrow">Phase</div>
+    <h2>Twenty-three editions, one shape</h2>
+    <p>Each block below is four weeks of Wikipedia reading for one language
+      edition: 24 columns for the hours, seven rows for the days, darker where
+      more people were reading. Each block is scaled against its own average, so
+      what you are comparing is shape, not size.</p>
+    <p>In <b>UTC</b>, the wall clock the servers keep, they look like
+      twenty-three unrelated signals. Their busiest hours are scattered across
+      twelve hours of the day. Switch to <b>local time</b> and they snap into
+      alignment.</p>
+  </div>
+
+  <figure class="fig band">
+    <div class="controls">
+      <span class="ctl-label" id="tiles-label">Clock</span>
+      <div class="seg" id="tiles-toggle" role="group" aria-labelledby="tiles-label">
+        <button type="button" data-value="utc" aria-pressed="true">UTC</button>
+        <button type="button" data-value="local" aria-pressed="false">Local time</button>
+      </div>
+      <div class="legend">
+        <span class="legend-item">Quiet
+          <span class="ramp" aria-hidden="true"><i style="background:var(--s0)"></i><i style="background:var(--s1)"></i><i style="background:var(--s2)"></i><i style="background:var(--s3)"></i><i style="background:var(--s4)"></i><i style="background:var(--s5)"></i><i style="background:var(--s6)"></i><i style="background:var(--s7)"></i></span>
+          Busy</span>
+      </div>
+    </div>
+    <div class="panel" id="lang-detail" style="margin-bottom:1.5rem"></div>
+    <div class="tiles" id="lang-tiles"></div>
+    <figcaption>Pick any block to see it full size above. Wikipedia pageviews,
+      human traffic only, 1&ndash;28 September
+      2025. Rows run Monday at the top to Sunday at the bottom; columns run
+      midnight to 23:00. <b>Local time</b> uses each edition's dominant
+      timezone. For five editions whose readers are spread across many
+      longitudes, that anchor is a rough one, and they are the blocks that stay
+      blurred after the switch.</figcaption>
+    <details class="table-toggle">
+      <summary>Show every edition as a table</summary>
+      <div class="scroll-x" id="lang-table"></div>
+    </details>
+  </figure>
+</section>
+
+<section class="sec">
+  <div class="col sec-head">
+    <div class="eyebrow">Entrainment</div>
+    <h2>Everybody reads at nine in the evening</h2>
+    <p>Pulling out just the busiest hour of each edition makes the collapse
+      explicit. On the UTC clock the peaks are smeared across half a day. On the
+      local clock, <b>21 of the 23 editions peak between 20:00 and
+      22:00</b>.</p>
+  </div>
+
+  <figure class="fig band">
+    <div class="panel">
+      <div class="legend" style="margin-bottom:.6rem">
+        <span class="legend-item"><span class="swatch" style="background:var(--series-1)"></span>Readers mostly in one timezone</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--series-2)"></span>Readers spread across many</span>
+      </div>
+      <div id="phase-strip"></div>
+    </div>
+    <figcaption>The one edition that refuses to line up is <b>English</b>, which
+      peaks at 16:00 New York time. That is not because English speakers read in
+      the afternoon. It is because there is no hour that is evening for all of
+      them at once.</figcaption>
+  </figure>
+</section>
+
+<section class="sec">
+  <div class="col sec-head">
+    <div class="eyebrow">Amplitude</div>
+    <h2>How hard a platform breathes tells you where its readers live</h2>
+    <p>Amplitude here is the ratio between an edition's busiest and quietest
+      hour of the day. It looks like a measure of how devoted a readership is.
+      It is really a measure of how tightly packed it is in longitude.</p>
+    <p>Dutch readers swing by a factor of <b>11.7</b> between their peak hour
+      and their trough, because when it is 4am in the Netherlands it is 4am for
+      almost everyone reading. English swings by <b>1.7</b>, because one
+      group's small hours are another group's lunch break. The curve is flat for
+      the same reason a chorus of voices singing at different times sounds like
+      a drone.</p>
+  </div>
+
+  <figure class="fig col">
+    <div id="amp-bars"></div>
+    <figcaption>Peak hour divided by trough hour, in local time, averaged across
+      the four weeks. The five editions in orange are the ones whose readership
+      was flagged as spread across timezones <b>before</b> the analysis ran, not
+      after seeing the result. Chinese is the interesting near-miss: a single
+      language, but a readership split across the diaspora and largely outside
+      mainland China, where Wikipedia is blocked.</figcaption>
+  </figure>
+</section>
+
+<section class="sec">
+  <div class="col sec-head">
+    <div class="eyebrow">Circaseptan</div>
+    <h2>The week barely registers</h2>
+    <p>For all the drama in the hours, the days are almost featureless. The
+      typical edition moves just <b>13%</b> from its quietest day to its
+      busiest, against up to <b>1,066%</b> across the hours of a single day.
+      Sunday is the busiest day in 13 of the 23 editions, Friday or Saturday the
+      quietest in 16, and that is very nearly the whole story. Even the most
+      week-shaped edition, Finnish, only spans 39%.</p>
+    <p>Curiosity, it turns out, does not take weekends off. It only sleeps. And
+      that makes a useful control for the next platform, because
+      <b>GitHub's week is the part that moves</b>.</p>
+  </div>
+
+  <figure class="fig col">
+    <div id="wiki-weekday"></div>
+    <figcaption>Each edition's spread from its quietest to its busiest day of
+      the week, scaled against its own average day. Compare the axis with the
+      hourly amplitudes above, which run from 1.7x to 11.7x.</figcaption>
+  </figure>
+</section>
