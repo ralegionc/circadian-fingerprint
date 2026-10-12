@@ -61,6 +61,8 @@ late-night anime and idol groups behind them.
 
 ## Data sources
 
+> The raw inputs are not in this repository. [DATA.md](DATA.md) records exactly which files were used, with sizes and fingerprints, and how to re-fetch them.
+
 | Source | What it gives | Why |
 |---|---|---|
 | [Wikimedia Pageviews API](https://wikimedia.org/api/rest_v1/) | hourly totals per language edition | the only endpoint with hourly granularity; the per-article endpoint caps at daily |
